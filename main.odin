@@ -4,25 +4,26 @@ import "vendor:raylib"
 
 Machine :: struct {
     // 16 8-bit general purpose registers.
-    registers: [16]u8,
+    // VF shouldn't be used by any program as it is used as a flag by some instructions.
+    v: [16]u8,
 }
 
 main :: proc() {
     machine := Machine {}
 
     // All CHIP-8 instructions are 2-bytes long.
-    program := []u16 { 0x6F24 }
+    program := []u16 { 0x6E2F }
     for i := 0; i < len(program); i += 1 {
         instruction := program[i]
-        opcode := instruction >> 12
-        if opcode == 6 {
+        code := instruction >> 12
+        if code == 6 {
             x := (instruction << 4) >> 12
             kk := cast(u8)((instruction << 8) >> 8)
-            machine.registers[x] = kk
+            machine.v[x] = kk
         }
 
         for r := 0; r < 16; r += 1 {
-            fmt.printf("[%02d]: 0x%02x ", r, machine.registers[r])
+            fmt.printf("[V%X]: 0x%02X ", r, machine.v[r])
             if (r+1) % 4 == 0 do fmt.println()
         }
     }
