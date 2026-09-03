@@ -45,7 +45,14 @@ machine_step :: proc(machine: ^Machine) {
     increment_pc := true
 
     // ~ Parameter-less Instructions
-    if instruction == 0x00EE {
+    if instruction == 0x00E0 {
+        // - clear the display.
+        for dx := 0; dx < 64; dx += 1 {
+            for dy := 0; dy < 32; dy += 1 {
+                machine.display[dx][dy] = 0
+            }
+        }
+    } else if instruction == 0x00EE {
         // - return from a subroutine.
         fmt.printfln("RET")
         machine.pc = machine.stack[machine.sp]
@@ -132,7 +139,7 @@ machine_step :: proc(machine: ^Machine) {
 }
 
 main :: proc() {
-    program := []u8 { 0x12, 0x04, 0xFF, 0xFF, 0x61, 0x10, 0x62, 0x10, 0xA2, 0x02, 0xD1, 0x22,  }
+    program := []u8 { 0x12, 0x04, 0xFF, 0xFF, 0x61, 0x10, 0x62, 0x10, 0xA2, 0x02, 0xD1, 0x22, 0x00, 0xE0 }
     machine := Machine {}
     machine_load_program(&machine, program)
 
