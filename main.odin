@@ -41,6 +41,7 @@ machine_step :: proc(machine: ^Machine) {
     // ~ Parameter-less Instructions
     if instruction == 0x00EE {
         // - return from a subroutine.
+        fmt.printfln("RET")
         machine.pc = machine.stack[machine.sp]
         machine.sp -= 1
     }
@@ -48,24 +49,45 @@ machine_step :: proc(machine: ^Machine) {
     // ~ Parameterized Instructions
     if code == 1 {
         // - jump to an address in memory.
+        fmt.printfln("JMP 0x%03X", nnn)
         machine.pc = nnn
     } else if code == 2 {
         // - call a subroutine present at an address in memory.
+        fmt.printfln("CALL 0x%03X", nnn)
         machine.stack[machine.sp] = machine.pc
         machine.sp += 1
         machine.pc = nnn
+    } else if code == 3 {
+        // - skip the next instruction if Vx holds a specific value.
+        fmt.printfln("SEB V%X, 0x%02X", x, kk)
+        if (machine.v[x] == kk) do machine.pc += 2
+    } else if code == 4 {
+        // - skip the next instruction if Vx doesn't hold a specific value.
+        fmt.printfln("SNEB V%X, 0x%02X", x, kk)
+        if (machine.v[x] != kk) do machine.pc += 2
+    } else if code == 5 && n == 0 {
+        // - skip the next instruction if Vx equals Vy.
+        fmt.printfln("SEV V%X, V%X", x, y)
+        if (machine.v[x] == machine.v[y]) do machine.pc += 2
     } else if code == 6 {
         // - load a byte into a general purpose register.
+        fmt.printfln("LDB V%X, 0x%02X", x, kk)
         machine.v[x] = kk
+    } else if code == 9 && n == 0 {
+        // - skip the next instruction if Vx doesn't equal Vy.
+        fmt.printfln("SNEV V%X, V%X", x, y)
+        if (machine.v[x] != machine.v[y]) do machine.pc += 2
     }
 
     machine.pc += 2
-    // - error if the problem fails to establish a loop internally.
-    if machine.pc >= len(machine.memory) do os.exit(1)
+    if machine.pc >= len(machine.memory) {
+        fmt.eprintln("Program failed to establish an internal loop!")
+        os.exit(1)
+    }
 }
 
 main :: proc() {
-    program := []u8 { 0x10, 0x00 }
+    program := []u8 { 0x61, 0x01, 0x31, 0x01, 0x10, 0x00 }
     machine := Machine {}
     machine_load_program(&machine, program)
 
@@ -76,17 +98,21 @@ main :: proc() {
     defer raylib.CloseWindow()
     raylib.SetTargetFPS(60)
 
-    accumulated_time := 0.0
-    cycle_duration := 1.0 / 1200.0
+    // Different games rely on different clock rates, so 600 is probablly the safest middle ground.
+    cycle_duration := 1.0 / 600.0
+    accumulated_cycle_time := 0.0
 
     for !raylib.WindowShouldClose() {
         dt := raylib.GetFrameTime()
-        accumulated_time += cast(f64) dt
-        for accumulated_time >= cycle_duration {
+
+        // - execute instructions.
+        accumulated_cycle_time += cast(f64) dt
+        for accumulated_cycle_time >= cycle_duration {
             machine_step(&machine)
-            accumulated_time -= cycle_duration
+            accumulated_cycle_time -= cycle_duration
         }
 
+        // - execute renders.
         raylib.BeginDrawing()
         raylib.EndDrawing()
     }
