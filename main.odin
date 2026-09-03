@@ -31,10 +31,10 @@ machine_load_program :: proc(machine: ^Machine, program: []u8) {
 machine_step :: proc(machine: ^Machine) {
     low_byte := machine.memory[machine.pc]
     kk := machine.memory[machine.pc + 1]
-    instruction: u16 = auto_cast((low_byte << 8) | kk)
+    instruction: u16 = auto_cast ((low_byte << 8) | kk)
     code := low_byte >> 4
     x := low_byte & 0x0F
-    nnn: u16 = auto_cast((x << 8) | kk)
+    nnn: u16 = auto_cast ((x << 8) | kk)
     y := kk >> 4
     n := kk & 0x0F
 
@@ -59,23 +59,43 @@ machine_step :: proc(machine: ^Machine) {
         machine.pc = nnn
     } else if code == 3 {
         // - skip the next instruction if Vx holds a specific value.
-        fmt.printfln("SEB V%X, 0x%02X", x, kk)
+        fmt.printfln("SE V%X, 0x%02X", x, kk)
         if (machine.v[x] == kk) do machine.pc += 2
     } else if code == 4 {
         // - skip the next instruction if Vx doesn't hold a specific value.
-        fmt.printfln("SNEB V%X, 0x%02X", x, kk)
+        fmt.printfln("SNE V%X, 0x%02X", x, kk)
         if (machine.v[x] != kk) do machine.pc += 2
     } else if code == 5 && n == 0 {
         // - skip the next instruction if Vx equals Vy.
-        fmt.printfln("SEV V%X, V%X", x, y)
+        fmt.printfln("SE V%X, V%X", x, y)
         if (machine.v[x] == machine.v[y]) do machine.pc += 2
     } else if code == 6 {
         // - load a byte into a general purpose register.
-        fmt.printfln("LDB V%X, 0x%02X", x, kk)
+        fmt.printfln("LOAD V%X, 0x%02X", x, kk)
         machine.v[x] = kk
+    } else if code == 7 {
+        // - adds a value to Vx.
+        fmt.printfln("ADD V%X, 0x%02X", x, kk)
+        machine.v[x] += kk
+    } else if code == 8 && n == 4 {
+        // - add Vy to Vx and flag VF for carrying.
+        fmt.printfln("ADD V%X, V%X", x, y)
+        result: u16 = auto_cast machine.v[x] + auto_cast machine.v[y]
+        machine.v[x] = auto_cast (result & 0x00FF)
+        machine.v[0xF] = 1 if result > 255 else 0
+    } else if code == 8 && n == 5 {
+        // - subtract Vy from Vx and flag VF for NOT borrowing.
+        fmt.printfln("SUB V%X, V%X", x, y)
+        machine.v[0xF] = 1 if machine.v[x] > machine.v[y] else 0
+        machine.v[x] -= machine.v[y]
+    } else if code == 8 && n == 7 {
+        // - subtract Vx from Vy, store the result in Vx, and flag VF for NOT borrowing.
+        fmt.printfln("SUBN V%X, V%X", x, y)
+        machine.v[0xF] = 1 if machine.v[y] > machine.v[x] else 0
+        machine.v[x] = machine.v[y] - machine.v[x]
     } else if code == 9 && n == 0 {
         // - skip the next instruction if Vx doesn't equal Vy.
-        fmt.printfln("SNEV V%X, V%X", x, y)
+        fmt.printfln("SNE V%X, V%X", x, y)
         if (machine.v[x] != machine.v[y]) do machine.pc += 2
     }
 
@@ -87,7 +107,7 @@ machine_step :: proc(machine: ^Machine) {
 }
 
 main :: proc() {
-    program := []u8 { 0x61, 0x01, 0x31, 0x01, 0x10, 0x00 }
+    program := []u8 { 0x61, 0x01, 0x62, 0xFF, 0x81, 0x27, 0x3F, 0x01, 0x10, 0x00 }
     machine := Machine {}
     machine_load_program(&machine, program)
 
@@ -106,7 +126,7 @@ main :: proc() {
         dt := raylib.GetFrameTime()
 
         // - execute instructions.
-        accumulated_cycle_time += cast(f64) dt
+        accumulated_cycle_time += auto_cast dt
         for accumulated_cycle_time >= cycle_duration {
             machine_step(&machine)
             accumulated_cycle_time -= cycle_duration
