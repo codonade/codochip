@@ -60,7 +60,7 @@ machine_step :: proc(machine: ^Machine) {
     // ~ Parameter-less Instructions
     if instruction == 0x00E0 {
         // - clear the display.
-        fmt.println("CLEAR")
+        fmt.println("CLS")
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
                 machine.display[dx][dy] = 0
@@ -204,16 +204,21 @@ machine_step :: proc(machine: ^Machine) {
     }
 
     if increment_pc do machine.pc += 2
-    if machine.pc >= len(machine.memory) {
+    if machine.pc >= len(machine.memory) - 1 {
         fmt.eprintln("Program failed to establish an internal loop!")
         os.exit(1)
     }
 }
 
 main :: proc() {
+    // TODO drawn sprites keep flashing...
     program := []u8 {
-        0x60, 0x01, 0x61, 0x02, 0x62, 0x03,
-        0xF3, 0x55,
+        0x12, 0x03, // - skip the sprite data.
+        0xFF, 0xA2, 0x02, // - load the sprite in memory.
+        0x00, 0xE0, // - clear the display.
+        0x63, 0x04, // - register the drawing key.
+        0xE3, 0xA1, 0xD1, 0x21, // - draw the sprite if the key is pressed.
+        0x12, 0x05, // - back to the beginning.
     }
     machine := Machine {}
     machine_load_program(&machine, program)
@@ -232,7 +237,7 @@ main :: proc() {
     for !raylib.WindowShouldClose() {
         dt := raylib.GetFrameTime()
 
-        // - gather keyboard input.
+        // - get keyboard input.
         for k: u8 = 0; k < 16; k += 1 do machine.key[k] = false
         machine.key[0x1] = raylib.IsKeyDown(.ONE)
         machine.key[0x2] = raylib.IsKeyDown(.TWO)
@@ -259,16 +264,15 @@ main :: proc() {
         }
 
         // - render the display.
-        // TODO something is seriously messed up with how rendering works!
         raylib.BeginDrawing()
+        raylib.ClearBackground(raylib.BLACK)
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
                 if machine.display[dx][dy] == 0 do continue
-                for rx := dx * 16; rx < dx * 16 + 16; rx += 1 {
-                    for ry := dy * 16; ry < dy * 16 + 16; ry += 1 {
-                        raylib.DrawPixel(auto_cast rx, auto_cast ry, raylib.RED)
-                    }
-                }
+                raylib.DrawRectangle(
+                    auto_cast dx * 16,
+                    auto_cast dy * 16,
+                    16, 16, raylib.RED)
             }
         }
         raylib.EndDrawing()
