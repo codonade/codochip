@@ -1,5 +1,6 @@
 package main
 import "core:fmt"
+import "core:math/rand"
 import "vendor:raylib"
 import "core:os"
 
@@ -154,6 +155,10 @@ machine_step :: proc(machine: ^Machine) {
         // - load 12 bits into I.
         fmt.printfln("LOAD I, 0x%03X", nnn)
         machine.i = nnn
+    } else if code == 0xC {
+        // - generate a random byte and bitwise-and it with a byte in Vx.
+        fmt.printfln("RND V%X, 0x%02X", x, kk)
+        machine.v[x] = auto_cast rand.int_range(0, 256) & kk
     } else if code == 0xD {
         // - draw an n-bytes sprite from I at (Vx, Vy) and flag VF for collisions.
         // TODO we forgot to count for collisions!
@@ -190,7 +195,7 @@ machine_step :: proc(machine: ^Machine) {
 
 main :: proc() {
     program := []u8 {
-        0xF1, 0x0A, 0x31, 0x04, 0x10, 0x00,
+        0xC1, 0xFF, 0x10, 0x00,
     }
     machine := Machine {}
     machine_load_program(&machine, program)
