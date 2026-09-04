@@ -193,6 +193,14 @@ machine_step :: proc(machine: ^Machine) {
         // - add a byte to I.
         fmt.printfln("ADD I, V%X", x)
         machine.i += auto_cast machine.v[x]
+    } else if code == 0xF && kk == 0x55 {
+        // - store registers V0 through Vx in memory starting at I.
+        fmt.printfln("LOAD [I], V%X", x)
+        for r: u8 = 0; r < x; r += 1 do machine.memory[machine.i + auto_cast r] = machine.v[r]
+    } else if code == 0xF && kk == 0x65 {
+        // - read values from memory starting at I to registers V0 through Vx.
+        fmt.printfln("LOAD V%X, [I]", x)
+        for r: u8 = 0; r < x; r += 1 do machine.v[r] = machine.memory[machine.i + auto_cast r]
     }
 
     if increment_pc do machine.pc += 2
@@ -204,7 +212,8 @@ machine_step :: proc(machine: ^Machine) {
 
 main :: proc() {
     program := []u8 {
-        0xC1, 0xFF, 0x10, 0x00,
+        0x60, 0x01, 0x61, 0x02, 0x62, 0x03,
+        0xF3, 0x55,
     }
     machine := Machine {}
     machine_load_program(&machine, program)
