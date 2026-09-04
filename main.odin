@@ -8,18 +8,30 @@ Machine :: struct {
     // used to live. Programs targetting ETI 660 start at 0x0600.
     memory: [4_096]u8,
 
-    // 8-bit general purpose registers.
-    // VF shouldn't be used by any program as it is used as a flag by some instructions.
-    v: [16]u8,
-    // 16-bit general purpose register.
-    i: u16,
-
     // Psuedo-registers are registers that aren't accessible from CHIP-8 programs.
     // A 16-bit register used to store the address of the currently executing instruction.
     pc: u16,
     // An array to store the address the interpreter should return to when finished with a subroutine.
     stack: [16]u16,
     sp: u8,
+
+    // The computers which originally used the CHIP-8 language had a 16-key hexacedimal keypad:
+    // | ------------- |
+    // | 1 | 2 | 3 | C |
+    // | ------------- |
+    // | 4 | 5 | 6 | D |
+    // | ------------- |
+    // | 7 | 8 | 9 | E |
+    // | ------------- |
+    // | A | 0 | B | F |
+    // | ------------- |
+    key: [16]bool,
+
+    // 8-bit general purpose registers.
+    // VF shouldn't be used by any program as it is used as a flag by some instructions.
+    v: [16]u8,
+    // 16-bit general purpose register.
+    i: u16,
 
     // 64x32 monochromatic display.
     display: [64][32]u8,
@@ -47,6 +59,7 @@ machine_step :: proc(machine: ^Machine) {
     // ~ Parameter-less Instructions
     if instruction == 0x00E0 {
         // - clear the display.
+        fmt.println("CLEAR")
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
                 machine.display[dx][dy] = 0
@@ -54,7 +67,7 @@ machine_step :: proc(machine: ^Machine) {
         }
     } else if instruction == 0x00EE {
         // - return from a subroutine.
-        fmt.printfln("RET")
+        fmt.println("RET")
         machine.pc = machine.stack[machine.sp]
         machine.sp -= 1
         increment_pc = false
@@ -129,6 +142,18 @@ machine_step :: proc(machine: ^Machine) {
                 machine.display[dx][dy] = pixel
             }
         }
+    } else if code == 0xE && kk == 0x9E {
+        // - skip the next instruction if the key with the value Vx is pressed.
+        fmt.printfln("SKP V%X", x)
+        if machine.key[machine.v[x]] do machine.pc += 2
+    } else if code == 0xE && kk == 0xA1 {
+        // - skip the next instruction if the key with the value Vx is not pressed.
+        fmt.printfln("SKNP V%X", x)
+        if !machine.key[machine.v[x]] do machine.pc += 2
+    } else if code == 0xF && kk == 0x0A {
+        // - store the value of the currently pressed key in Vx.
+        fmt.printfln("LOAD V%X, K", x)
+        for k: u8 = 0; k < 16; k += 1 do if machine.key[k] do machine.v[x] = k
     }
 
     if increment_pc do machine.pc += 2
@@ -139,7 +164,9 @@ machine_step :: proc(machine: ^Machine) {
 }
 
 main :: proc() {
-    program := []u8 { 0x12, 0x04, 0xFF, 0xFF, 0x61, 0x10, 0x62, 0x10, 0xA2, 0x02, 0xD1, 0x22, 0x00, 0xE0 }
+    program := []u8 {
+        0xF1, 0x0A, 0x31, 0x04, 0x10, 0x00,
+    }
     machine := Machine {}
     machine_load_program(&machine, program)
 
@@ -157,6 +184,25 @@ main :: proc() {
     for !raylib.WindowShouldClose() {
         dt := raylib.GetFrameTime()
 
+        // - gather keyboard input.
+        for k: u8 = 0; k < 16; k += 1 do machine.key[k] = false
+        machine.key[0x1] = raylib.IsKeyDown(.ONE)
+        machine.key[0x2] = raylib.IsKeyDown(.TWO)
+        machine.key[0x3] = raylib.IsKeyDown(.THREE)
+        machine.key[0xC] = raylib.IsKeyDown(.FOUR)
+        machine.key[0x4] = raylib.IsKeyDown(.Q)
+        machine.key[0x5] = raylib.IsKeyDown(.W)
+        machine.key[0x6] = raylib.IsKeyDown(.E)
+        machine.key[0xD] = raylib.IsKeyDown(.R)
+        machine.key[0x7] = raylib.IsKeyDown(.A)
+        machine.key[0x8] = raylib.IsKeyDown(.S)
+        machine.key[0x9] = raylib.IsKeyDown(.D)
+        machine.key[0xE] = raylib.IsKeyDown(.F)
+        machine.key[0xA] = raylib.IsKeyDown(.Z)
+        machine.key[0x0] = raylib.IsKeyDown(.X)
+        machine.key[0xB] = raylib.IsKeyDown(.C)
+        machine.key[0xF] = raylib.IsKeyDown(.V)
+
         // - execute instructions.
         accumulated_cycle_time += auto_cast dt
         for accumulated_cycle_time >= cycle_duration {
@@ -165,6 +211,7 @@ main :: proc() {
         }
 
         // - render the display.
+        // TODO something is seriously messed up with how rendering works!
         raylib.BeginDrawing()
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
