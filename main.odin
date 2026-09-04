@@ -187,9 +187,17 @@ machine_step :: proc(machine: ^Machine) {
         fmt.printfln("SKNP V%X", x)
         if !machine.key[machine.v[x]] do machine.pc += 2
     } else if code == 0xF && kk == 0x0A {
-        // - store the value of the currently pressed key in Vx.
-        fmt.printfln("LOAD V%X, K", x)
-        for k: u8 = 0; k < 16; k += 1 do if machine.key[k] do machine.v[x] = k
+        // - wait until any key is pressed and store its value in Vx.
+        fmt.printfln("WAIT V%X, K", x)
+        any_key_pressed := false
+        for k: u8 = 0; k < 16; k += 1 {
+            if machine.key[k] {
+                machine.v[x] = k
+                any_key_pressed = true
+                break
+            }
+        }
+        if !any_key_pressed do return
     } else if code == 0xF && kk == 0x1E {
         // - add a byte to I.
         fmt.printfln("ADD I, V%X", x)
