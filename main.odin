@@ -35,7 +35,7 @@ Machine :: struct {
     i: u16,
 
     // 64x32 monochromatic display.
-    display: [64][32]u8,
+    display: [64][32]bool,
 }
 
 machine_load_program :: proc(machine: ^Machine, program: []u8) {
@@ -63,7 +63,7 @@ machine_step :: proc(machine: ^Machine) {
         fmt.println("CLS")
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
-                machine.display[dx][dy] = 0
+                machine.display[dx][dy] = false
             }
         }
     } else if instruction == 0x00EE {
@@ -170,11 +170,12 @@ machine_step :: proc(machine: ^Machine) {
         fmt.printfln("DRW V%X, V%X, %X", x, y, n)
         // Sprites can be up to 8x15 pixels.
         for sx: u8 = 0; sx < 8; sx += 1 {
-            mask: u8 = 1 << sx
+            mask: u8 = 0b10000000 >> sx
             for sy: u8 = 0; sy < n; sy += 1 {
                 pixel := machine.memory[machine.i + auto_cast sy] & mask
+                // TODO wrap around the screen!
                 dx := machine.v[x] + sx; dy := machine.v[y] + sy
-                machine.display[dx][dy] = pixel
+                machine.display[dx][dy] = pixel > 0
             }
         }
     } else if code == 0xE && kk == 0x9E {
@@ -211,7 +212,6 @@ machine_step :: proc(machine: ^Machine) {
 }
 
 main :: proc() {
-    // TODO drawn sprites keep flashing...
     program := []u8 {
         0x12, 0x03, // - skip the sprite data.
         0xFF, 0xA2, 0x02, // - load the sprite in memory.
@@ -264,11 +264,12 @@ main :: proc() {
         }
 
         // - render the display.
+        // HMMM I feel like there is some sort of race condition?
         raylib.BeginDrawing()
         raylib.ClearBackground(raylib.BLACK)
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
-                if machine.display[dx][dy] == 0 do continue
+                if !machine.display[dx][dy] do continue
                 raylib.DrawRectangle(
                     auto_cast dx * 16,
                     auto_cast dy * 16,
