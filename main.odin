@@ -69,8 +69,8 @@ machine_step :: proc(machine: ^Machine) {
     } else if instruction == 0x00EE {
         // - return from a subroutine.
         fmt.println("RET")
-        machine.pc = machine.stack[machine.sp]
         machine.sp -= 1
+        machine.pc = machine.stack[machine.sp] + 2
         increment_pc = false
     }
 
