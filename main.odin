@@ -173,8 +173,7 @@ machine_step :: proc(machine: ^Machine) {
             mask: u8 = 0b10000000 >> sx
             for sy: u8 = 0; sy < n; sy += 1 {
                 pixel := machine.memory[machine.i + auto_cast sy] & mask
-                // TODO wrap around the screen!
-                dx := machine.v[x] + sx; dy := machine.v[y] + sy
+                dx := (machine.v[x] + sx) % 64; dy := (machine.v[y] + sy) % 32
                 machine.display[dx][dy] = pixel > 0
             }
         }
