@@ -146,7 +146,7 @@ machine_step :: proc(machine: ^Machine) {
         fmt.printfln("SHL V%X {V%X}", x, y)
         msb := machine.v[x] & 0x80
         machine.v[x] <<= 1
-        machine.v[0xF] = msb
+        machine.v[0xF] = 1 if msb > 0 else 0
     } else if code == 0x9 && n == 0x0 {
         // - skip the next instruction if Vx doesn't equal Vy.
         fmt.printfln("SNE V%X, V%X", x, y)
