@@ -94,7 +94,7 @@ machine_step :: proc(machine: ^Machine) {
         // - skip the next instruction if Vx doesn't hold a specific value.
         fmt.printfln("SNE V%X, 0x%02X", x, kk)
         if (machine.v[x] != kk) do machine.pc += 2
-    } else if code == 0x5 && n == 0 {
+    } else if code == 0x5 && n == 0x0 {
         // - skip the next instruction if Vx equals Vy.
         fmt.printfln("SE V%X, V%X", x, y)
         if (machine.v[x] == machine.v[y]) do machine.pc += 2
@@ -106,23 +106,47 @@ machine_step :: proc(machine: ^Machine) {
         // - adds a value to Vx.
         fmt.printfln("ADD V%X, 0x%02X", x, kk)
         machine.v[x] += kk
-    } else if code == 0x8 && n == 4 {
+    } else if code == 0x8 && n == 0x1 {
+        // - bitwise-or the values of Vx and Vy in Vx.
+        fmt.printfln("OR V%X, V%X", x, y)
+        machine.v[x] |= machine.v[y]
+    } else if code == 0x8 && n == 0x2 {
+        // - bitwise-and the values of Vx and Vy in Vx.
+        fmt.printfln("AND V%X, V%X", x, y)
+        machine.v[x] &= machine.v[y]
+    } else if code == 0x8 && n == 0x3 {
+        // - bitwise-xor the values of Vx and Vy in Vx.
+        fmt.printfln("XOR V%X, V%X", x, y)
+        machine.v[x] ~= machine.v[y]
+    } else if code == 0x8 && n == 0x4 {
         // - add Vy to Vx and flag VF for carrying.
         fmt.printfln("ADD V%X, V%X", x, y)
         result: u16 = auto_cast machine.v[x] + auto_cast machine.v[y]
         machine.v[x] = auto_cast (result & 0x00FF)
         machine.v[0xF] = 1 if result > 255 else 0
-    } else if code == 0x8 && n == 5 {
+    } else if code == 0x8 && n == 0x5 {
         // - subtract Vy from Vx and flag VF for NOT borrowing.
         fmt.printfln("SUB V%X, V%X", x, y)
         machine.v[0xF] = 1 if machine.v[x] > machine.v[y] else 0
         machine.v[x] -= machine.v[y]
-    } else if code == 0x8 && n == 7 {
+    } else if code == 0x8 && n == 0x6 {
+        // - shift the value of Vx to the right by 1 and store the least significant bit in VF.
+        fmt.printfln("SHR V%X {V%X}", x, y)
+        lsb := machine.v[x] & 1
+        machine.v[x] >>= 1
+        machine.v[0xF] = lsb
+    } else if code == 0x8 && n == 0x7 {
         // - subtract Vx from Vy, store the result in Vx, and flag VF for NOT borrowing.
         fmt.printfln("SUBN V%X, V%X", x, y)
         machine.v[0xF] = 1 if machine.v[y] > machine.v[x] else 0
         machine.v[x] = machine.v[y] - machine.v[x]
-    } else if code == 0x9 && n == 0 {
+    } else if code == 0x8 && n == 0xE {
+        // - shift the value of Vx to the left by 1 and store the most significant bit in VF.
+        fmt.printfln("SHL V%X {V%X}", x, y)
+        msb := machine.v[x] & 0x80
+        machine.v[x] <<= 1
+        machine.v[0xF] = msb
+    } else if code == 0x9 && n == 0x0 {
         // - skip the next instruction if Vx doesn't equal Vy.
         fmt.printfln("SNE V%X, V%X", x, y)
         if (machine.v[x] != machine.v[y]) do machine.pc += 2
@@ -132,6 +156,7 @@ machine_step :: proc(machine: ^Machine) {
         machine.i = nnn
     } else if code == 0xD {
         // - draw an n-bytes sprite from I at (Vx, Vy) and flag VF for collisions.
+        // TODO we forgot to count for collisions!
         fmt.printfln("DRW V%X, V%X, %X", x, y, n)
         // Sprites can be up to 8x15 pixels.
         for sx: u8 = 0; sx < 8; sx += 1 {
