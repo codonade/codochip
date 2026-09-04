@@ -155,6 +155,11 @@ machine_step :: proc(machine: ^Machine) {
         // - load 12 bits into I.
         fmt.printfln("LOAD I, 0x%03X", nnn)
         machine.i = nnn
+    } else if code == 0xB {
+        // - jump to a memory address offset by V0.
+        fmt.printfln("JMP V0, 0x%03X", nnn)
+        machine.pc = nnn + auto_cast machine.v[0]
+        increment_pc = false
     } else if code == 0xC {
         // - generate a random byte and bitwise-and it with a byte in Vx.
         fmt.printfln("RND V%X, 0x%02X", x, kk)
