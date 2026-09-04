@@ -165,16 +165,17 @@ machine_step :: proc(machine: ^Machine) {
         fmt.printfln("RND V%X, 0x%02X", x, kk)
         machine.v[x] = auto_cast rand.int_range(0, 256) & kk
     } else if code == 0xD {
-        // - draw an n-bytes sprite from I at (Vx, Vy) and flag VF for collisions.
-        // TODO we forgot to count for collisions!
+        // - draw an n-bytes sprite from I at (Vx, Vy).
         fmt.printfln("DRW V%X, V%X, %X", x, y, n)
-        // Sprites can be up to 8x15 pixels.
+        // Sprites can be up to 8x15 pixels. If they collided with another sprite, VF is switched on.
+        machine.v[0xF] = 0
         for sx: u8 = 0; sx < 8; sx += 1 {
             mask: u8 = 0b10000000 >> sx
             for sy: u8 = 0; sy < n; sy += 1 {
-                pixel := machine.memory[machine.i + auto_cast sy] & mask
+                pixel := machine.memory[machine.i + auto_cast sy] & mask > 0
                 dx := (machine.v[x] + sx) % 64; dy := (machine.v[y] + sy) % 32
-                machine.display[dx][dy] = pixel > 0
+                if machine.display[dx][dy] && pixel do machine.v[0xF] = 1
+                machine.display[dx][dy] = machine.display[dx][dy] != pixel
             }
         }
     } else if code == 0xE && kk == 0x9E {
