@@ -33,6 +33,10 @@ Machine :: struct {
     v: [16]u8,
     // 16-bit general purpose register.
     i: u16,
+    // 8-bit delay timer register.
+    dt: u8,
+    // 8-bit sound timer register.
+    st: u8,
 
     // 64x32 monochromatic display.
     display: [64][32]bool,
@@ -196,6 +200,20 @@ machine_step :: proc(machine: ^Machine) {
         fmt.println("LOAD I, F")
         machine.i = auto_cast machine.v[x] * 5
 
+    // ~ Timers
+    } else if code == 0xF && kk == 0x15 {
+        // - load the value of Vx into DT.
+        fmt.printfln("LOAD DT, V%X", x)
+        machine.dt = machine.v[x]
+    } else if code == 0xF && kk == 0x07 {
+        // - load the value of DT into Vx.
+        fmt.printfln("LOAD V%X, DT", x)
+        machine.v[x] = machine.dt
+    } else if code == 0xF && kk == 0x18 {
+        // - load the value of Vx into ST.
+        fmt.printfln("LOAD ST, V%X", x)
+        machine.st = machine.v[x]
+
     // ~ Memory Operations
     } else if code == 0xF && kk == 0x55 {
         // - store registers V0 through Vx in memory starting at I.
@@ -338,7 +356,7 @@ machine_step :: proc(machine: ^Machine) {
 
 main :: proc() {
     program := []u8 {
-       0x60, 0x0F, 0xF0, 0x29, 0xDD, 0xE5,
+       0x60, 0x0F, 0xF0, 0x18,
     }
     machine := Machine {}
     machine_spin(&machine, program)
@@ -354,8 +372,12 @@ main :: proc() {
     cycle_duration := 1.0 / 600.0
     accumulated_cycle_time := 0.0
 
+    // CHIP-8 timers tick 60 times a second.
+    tick_duration := 1.0 / 60.0
+    accumulated_timer_time := 0.0
+
     for !raylib.WindowShouldClose() {
-        dt := raylib.GetFrameTime()
+        fd := raylib.GetFrameTime()
 
         // - get keyboard input.
         for k: u8 = 0; k < 16; k += 1 do machine.key[k] = false
@@ -377,10 +399,22 @@ main :: proc() {
         machine.key[0xF] = raylib.IsKeyDown(.V)
 
         // - execute instructions.
-        accumulated_cycle_time += auto_cast dt
+        accumulated_cycle_time += auto_cast fd
         for accumulated_cycle_time >= cycle_duration {
             machine_step(&machine)
             accumulated_cycle_time -= cycle_duration
+        }
+
+        // - tick timers.
+        accumulated_timer_time += auto_cast fd
+        for accumulated_timer_time >= tick_duration {
+            if machine.dt > 0 do machine.dt -= 1
+            if machine.st > 0 {
+                machine.st -= 1
+                fmt.println("TODO beeeeep!")
+            }
+
+            accumulated_timer_time -= tick_duration
         }
 
         // - render the display.
