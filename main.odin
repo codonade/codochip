@@ -4,6 +4,11 @@ import "core:math/rand"
 import "vendor:raylib"
 import "core:os"
 
+panic :: proc(message: string) {
+    fmt.eprintln(message)
+    os.exit(1)
+}
+
 Machine :: struct {
     // 4KB memory. Programs start at 0x0200 because the first 512 bytes were where the interpreter
     // used to live. Programs targetting ETI 660 start at 0x0600.
@@ -349,15 +354,14 @@ machine_step :: proc(machine: ^Machine) {
 
     if increment_pc do machine.pc += 2
     if machine.pc >= len(machine.memory) - 1 {
-        fmt.eprintln("Program failed to establish an internal loop!")
-        os.exit(1)
+        panic("Program failed to establish an internal loop!")
     }
 }
 
 main :: proc() {
-    program := []u8 {
-       0x60, 0x0F, 0xF0, 0x18,
-    }
+    if len(os.args) < 2 do panic("USAGE: codochip ./rom.ch8")
+    program, error := os.read_entire_file(os.args[1], context.allocator)
+    if error != os.ERROR_NONE do panic("Couldn't read ROM!")
     machine := Machine {}
     machine_spin(&machine, program)
 

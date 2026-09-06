@@ -12,3 +12,4 @@ a friend...
 
 - [Odin Overview](https://odin-lang.org/docs/overview/)
 - [CHIP-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
+- [CHIP-8 ROMs](https://github.com/kripod/chip8-roms)
