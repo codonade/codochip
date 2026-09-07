@@ -155,7 +155,7 @@ machine_spin :: proc(machine: ^Machine, program: []u8) {
 }
 
 // TODO handle instruction errors!
-machine_step :: proc(machine: ^Machine) {
+machine_step :: proc(machine: ^Machine) -> bool {
     low_byte := machine.memory[machine.pc]
     kk := machine.memory[machine.pc + 1]
     instruction: u16 = auto_cast low_byte << 8 | auto_cast kk
@@ -165,6 +165,7 @@ machine_step :: proc(machine: ^Machine) {
     y := kk >> 4
     n := kk & 0x0F
     increment_pc := true
+    display_updated := false
 
     // ~ Calls and Jumps
     if code == 0x1 {
@@ -301,11 +302,11 @@ machine_step :: proc(machine: ^Machine) {
 
     // ~ Keyboard Input
     } else if code == 0xE && kk == 0x9E {
-        // - skip the next instruction if the key with the value Vx is pressed.
+        // - skip the next instruction if the key with the value of Vx is pressed.
         fmt.printfln("SKP V%X", x)
         if machine.key[machine.v[x]] do machine.pc += 2
     } else if code == 0xE && kk == 0xA1 {
-        // - skip the next instruction if the key with the value Vx is not pressed.
+        // - skip the next instruction if the key with the value of Vx is not pressed.
         fmt.printfln("SKNP V%X", x)
         if !machine.key[machine.v[x]] do machine.pc += 2
     } else if code == 0xF && kk == 0x0A {
@@ -319,7 +320,7 @@ machine_step :: proc(machine: ^Machine) {
                 break
             }
         }
-        if !any_key_pressed do return
+        if !any_key_pressed do return false
 
     // ~ Random Number Generator
     } else if code == 0xC {
@@ -336,6 +337,7 @@ machine_step :: proc(machine: ^Machine) {
                 machine.display[dx][dy] = false
             }
         }
+        display_updated = true
     } else if code == 0xD {
         // - draw an n-bytes sprite from I at (Vx, Vy).
         fmt.printfln("DRW V%X, V%X, %X", x, y, n)
@@ -350,18 +352,31 @@ machine_step :: proc(machine: ^Machine) {
                 machine.display[dx][dy] = machine.display[dx][dy] != pixel
             }
         }
+        display_updated = true
     }
 
     if increment_pc do machine.pc += 2
-    if machine.pc >= len(machine.memory) - 1 {
-        panic("Program failed to establish an internal loop!")
-    }
+    if machine.pc >= len(machine.memory) - 1 do panic("Program Finished!")
+    return display_updated
+}
+
+program := []u8 {
+    // V0: 1 Offset, V1: Digit, V2: X-coordinate, V3: Y-coordinate, V4: Key 1, V5: Key 2
+    0x12, 0x03, 0b11111111, // - load the player sprite data.
+    0x64, 0x07, 0x65, 0x09,  // - set the keys.
+    0x62, 0x1C, 0x63, 0x1F, // - set the player initial coordinates.
+    0x60, 0x01, // - mark the beginning of the game.
+    0xA2, 0x02, 0xD2, 0x31, // - draw the player sprite.
+    0xE4, 0x9E, 0xB2, 0x18, 0x00, 0xE0, 0x82, 0x05, // - move the player to the left.
+    0xE5, 0x9E, 0xB2, 0x0C, 0x00, 0xE0, 0x72, 0x01, // - move the player to the right.
+    0xB2, 0x0C,
 }
 
 main :: proc() {
     if len(os.args) < 2 do panic("USAGE: codochip ./rom.ch8")
-    program, error := os.read_entire_file(os.args[1], context.allocator)
-    if error != os.ERROR_NONE do panic("Couldn't read ROM!")
+    // TEMP currently disabled to make constructing test programs easier!
+    // program, error := os.read_entire_file(os.args[1], context.allocator)
+    // if error != os.ERROR_NONE do panic("Couldn't read ROM!")
     machine := Machine {}
     machine_spin(&machine, program)
 
@@ -384,30 +399,46 @@ main :: proc() {
         fd := raylib.GetFrameTime()
 
         // - get keyboard input.
+        // There was no concept of continuous key holding in the CHIP-8 computers.
+        // TODO sometimes a press gets registered twice.
         for k: u8 = 0; k < 16; k += 1 do machine.key[k] = false
-        machine.key[0x1] = raylib.IsKeyDown(.ONE)
-        machine.key[0x2] = raylib.IsKeyDown(.TWO)
-        machine.key[0x3] = raylib.IsKeyDown(.THREE)
-        machine.key[0xC] = raylib.IsKeyDown(.FOUR)
-        machine.key[0x4] = raylib.IsKeyDown(.Q)
-        machine.key[0x5] = raylib.IsKeyDown(.W)
-        machine.key[0x6] = raylib.IsKeyDown(.E)
-        machine.key[0xD] = raylib.IsKeyDown(.R)
-        machine.key[0x7] = raylib.IsKeyDown(.A)
-        machine.key[0x8] = raylib.IsKeyDown(.S)
-        machine.key[0x9] = raylib.IsKeyDown(.D)
-        machine.key[0xE] = raylib.IsKeyDown(.F)
-        machine.key[0xA] = raylib.IsKeyDown(.Z)
-        machine.key[0x0] = raylib.IsKeyDown(.X)
-        machine.key[0xB] = raylib.IsKeyDown(.C)
-        machine.key[0xF] = raylib.IsKeyDown(.V)
+        machine.key[0x1] = raylib.IsKeyPressed(.ONE)
+        machine.key[0x2] = raylib.IsKeyPressed(.TWO)
+        machine.key[0x3] = raylib.IsKeyPressed(.THREE)
+        machine.key[0xC] = raylib.IsKeyPressed(.FOUR)
+        machine.key[0x4] = raylib.IsKeyPressed(.Q)
+        machine.key[0x5] = raylib.IsKeyPressed(.W)
+        machine.key[0x6] = raylib.IsKeyPressed(.E)
+        machine.key[0xD] = raylib.IsKeyPressed(.R)
+        machine.key[0x7] = raylib.IsKeyPressed(.A)
+        machine.key[0x8] = raylib.IsKeyPressed(.S)
+        machine.key[0x9] = raylib.IsKeyPressed(.D)
+        machine.key[0xE] = raylib.IsKeyPressed(.F)
+        machine.key[0xA] = raylib.IsKeyPressed(.Z)
+        machine.key[0x0] = raylib.IsKeyPressed(.X)
+        machine.key[0xB] = raylib.IsKeyPressed(.C)
+        machine.key[0xF] = raylib.IsKeyPressed(.V)
 
         // - execute instructions.
+        // HMMM I really don't understand why everything keeps flashing on the screen?
+        raylib.BeginDrawing()
         accumulated_cycle_time += auto_cast fd
         for accumulated_cycle_time >= cycle_duration {
-            machine_step(&machine)
+            if machine_step(&machine) {
+                raylib.ClearBackground(raylib.BLACK)
+                for dx := 0; dx < 64; dx += 1 {
+                    for dy := 0; dy < 32; dy += 1 {
+                        if !machine.display[dx][dy] do continue
+                        raylib.DrawRectangle(
+                            auto_cast dx * 16,
+                            auto_cast dy * 16,
+                            16, 16, raylib.RED)
+                    }
+                }
+            }
             accumulated_cycle_time -= cycle_duration
         }
+        raylib.EndDrawing()
 
         // - tick timers.
         accumulated_timer_time += auto_cast fd
@@ -417,23 +448,7 @@ main :: proc() {
                 machine.st -= 1
                 fmt.println("TODO beeeeep!")
             }
-
             accumulated_timer_time -= tick_duration
         }
-
-        // - render the display.
-        // HMMM I feel like there is some sort of race condition?
-        raylib.BeginDrawing()
-        raylib.ClearBackground(raylib.BLACK)
-        for dx := 0; dx < 64; dx += 1 {
-            for dy := 0; dy < 32; dy += 1 {
-                if !machine.display[dx][dy] do continue
-                raylib.DrawRectangle(
-                    auto_cast dx * 16,
-                    auto_cast dy * 16,
-                    16, 16, raylib.RED)
-            }
-        }
-        raylib.EndDrawing()
     }
 }
