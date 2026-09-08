@@ -394,7 +394,7 @@ main :: proc() {
     // - parse command line arguments.
     if len(os.args) < 2 || len(os.args) > 3 do usage()
     file_path := ""
-    for i := 0; i < 2; i += 1 {
+    for i := 0; i < len(os.args) - 1; i += 1 {
         arg := os.args[i + 1]
         if str.starts_with(arg, "-") {
             if arg == "-d" || arg == "--disassemble" do should_disassemble = true
