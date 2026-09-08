@@ -9,6 +9,8 @@ panic :: proc(message: string) {
     os.exit(1)
 }
 
+FONT_SPRITES_ADDRESS :: 0x050
+INTERPRETER_END_ADDRESS :: 0x200
 Machine :: struct {
     // 4KB memory. Programs start at 0x0200 because the first 512 bytes were where the interpreter
     // used to live. Programs targetting ETI 660 start at 0x0600.
@@ -51,106 +53,106 @@ machine_spin :: proc(machine: ^Machine, program: []u8) {
     // CHIP-8 programs must be granted access to a group of sprites representing the hexadecimal
     // digits 0 through F. They must be 4x5 pixels and can only be stored in the interpreter area of
     // the memory.
-    machine.memory[0x000] = 0b11110000 // ****
-    machine.memory[0x001] = 0b10010000 // *  *
-    machine.memory[0x002] = 0b10010000 // *  *
-    machine.memory[0x003] = 0b10010000 // *  *
-    machine.memory[0x004] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x000] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x001] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x002] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x003] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x004] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x005] = 0b00100000 //   *
-    machine.memory[0x006] = 0b01100000 //  **
-    machine.memory[0x007] = 0b00100000 //   *
-    machine.memory[0x008] = 0b00100000 //   *
-    machine.memory[0x009] = 0b01110000 //  ***
+    machine.memory[FONT_SPRITES_ADDRESS + 0x005] = 0b00100000 //   *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x006] = 0b01100000 //  **
+    machine.memory[FONT_SPRITES_ADDRESS + 0x007] = 0b00100000 //   *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x008] = 0b00100000 //   *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x009] = 0b01110000 //  ***
     //////////////////////////////////////////
-    machine.memory[0x00A] = 0b11110000 // ****
-    machine.memory[0x00B] = 0b00010000 //    *
-    machine.memory[0x00C] = 0b11110000 // ****
-    machine.memory[0x00D] = 0b10000000 // *
-    machine.memory[0x00E] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x00A] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x00B] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x00C] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x00D] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x00E] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x00F] = 0b11110000 // ****
-    machine.memory[0x010] = 0b00010000 //    *
-    machine.memory[0x011] = 0b11110000 // ****
-    machine.memory[0x012] = 0b00010000 //    *
-    machine.memory[0x013] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x00F] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x010] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x011] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x012] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x013] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x014] = 0b10010000 // *  *
-    machine.memory[0x015] = 0b10010000 // *  *
-    machine.memory[0x016] = 0b11110000 // ****
-    machine.memory[0x017] = 0b00010000 //    *
-    machine.memory[0x018] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x014] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x015] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x016] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x017] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x018] = 0b00010000 //    *
     //////////////////////////////////////////
-    machine.memory[0x019] = 0b11110000 // ****
-    machine.memory[0x01A] = 0b10000000 // *
-    machine.memory[0x01B] = 0b11110000 // ****
-    machine.memory[0x01C] = 0b00010000 //    *
-    machine.memory[0x01D] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x019] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x01A] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x01B] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x01C] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x01D] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x01E] = 0b11110000 // ****
-    machine.memory[0x01F] = 0b10000000 // *
-    machine.memory[0x020] = 0b11110000 // ****
-    machine.memory[0x021] = 0b10010000 // *  *
-    machine.memory[0x022] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x01E] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x01F] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x020] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x021] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x022] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x023] = 0b11110000 // ****
-    machine.memory[0x024] = 0b00010000 //    *
-    machine.memory[0x025] = 0b00100000 //   *
-    machine.memory[0x026] = 0b01000000 //  *
-    machine.memory[0x027] = 0b01000000 //  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x023] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x024] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x025] = 0b00100000 //   *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x026] = 0b01000000 //  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x027] = 0b01000000 //  *
     //////////////////////////////////////////
-    machine.memory[0x028] = 0b11110000 // ****
-    machine.memory[0x029] = 0b10010000 // *  *
-    machine.memory[0x02A] = 0b11110000 // ****
-    machine.memory[0x02B] = 0b10010000 // *  *
-    machine.memory[0x02C] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x028] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x029] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x02A] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x02B] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x02C] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x02D] = 0b11110000 // ****
-    machine.memory[0x02E] = 0b10010000 // *  *
-    machine.memory[0x02F] = 0b11110000 // ****
-    machine.memory[0x030] = 0b00010000 //    *
-    machine.memory[0x031] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x02D] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x02E] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x02F] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x030] = 0b00010000 //    *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x031] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x032] = 0b11110000 // ****
-    machine.memory[0x033] = 0b10010000 // *  *
-    machine.memory[0x034] = 0b11110000 // ****
-    machine.memory[0x035] = 0b10010000 // *  *
-    machine.memory[0x036] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x032] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x033] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x034] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x035] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x036] = 0b10010000 // *  *
     //////////////////////////////////////////
-    machine.memory[0x037] = 0b11100000 // ***
-    machine.memory[0x038] = 0b10010000 // *  *
-    machine.memory[0x039] = 0b11100000 // ***
-    machine.memory[0x03A] = 0b10010000 // *  *
-    machine.memory[0x03B] = 0b11100000 // ***
+    machine.memory[FONT_SPRITES_ADDRESS + 0x037] = 0b11100000 // ***
+    machine.memory[FONT_SPRITES_ADDRESS + 0x038] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x039] = 0b11100000 // ***
+    machine.memory[FONT_SPRITES_ADDRESS + 0x03A] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x03B] = 0b11100000 // ***
     //////////////////////////////////////////
-    machine.memory[0x03C] = 0b11110000 // ****
-    machine.memory[0x03D] = 0b10000000 // *
-    machine.memory[0x03E] = 0b10000000 // *
-    machine.memory[0x03F] = 0b10000000 // *
-    machine.memory[0x040] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x03C] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x03D] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x03E] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x03F] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x040] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x041] = 0b11100000 // ***
-    machine.memory[0x042] = 0b10010000 // *  *
-    machine.memory[0x043] = 0b10010000 // *  *
-    machine.memory[0x044] = 0b10010000 // *  *
-    machine.memory[0x045] = 0b11100000 // ***
+    machine.memory[FONT_SPRITES_ADDRESS + 0x041] = 0b11100000 // ***
+    machine.memory[FONT_SPRITES_ADDRESS + 0x042] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x043] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x044] = 0b10010000 // *  *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x045] = 0b11100000 // ***
     //////////////////////////////////////////
-    machine.memory[0x046] = 0b11110000 // ****
-    machine.memory[0x047] = 0b10000000 // *
-    machine.memory[0x048] = 0b11110000 // ****
-    machine.memory[0x049] = 0b10000000 // *
-    machine.memory[0x04A] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x046] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x047] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x048] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x049] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x04A] = 0b11110000 // ****
     //////////////////////////////////////////
-    machine.memory[0x04B] = 0b11110000 // ****
-    machine.memory[0x04C] = 0b10000000 // *
-    machine.memory[0x04D] = 0b11110000 // ****
-    machine.memory[0x04E] = 0b10000000 // *
-    machine.memory[0x04F] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x04B] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x04C] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x04D] = 0b11110000 // ****
+    machine.memory[FONT_SPRITES_ADDRESS + 0x04E] = 0b10000000 // *
+    machine.memory[FONT_SPRITES_ADDRESS + 0x04F] = 0b10000000 // *
 
     // - load the program into memory.
-    machine.pc = 0x200
+    machine.pc = INTERPRETER_END_ADDRESS
     for i := 0; i < len(program); i += 1 {
-        machine.memory[machine.pc + auto_cast i] = program[i]
+        machine.memory[INTERPRETER_END_ADDRESS + auto_cast i] = program[i]
     }
 }
 
@@ -204,7 +206,7 @@ machine_step :: proc(machine: ^Machine) -> bool {
     } else if code == 0xF && kk == 0x29 {
         // - load the location of the sprite for the digit in Vx into I.
         fmt.println("LOAD I, F")
-        machine.i = auto_cast machine.v[x] * 5
+        machine.i = FONT_SPRITES_ADDRESS + auto_cast machine.v[x] * 5
 
     // ~ Timers
     } else if code == 0xF && kk == 0x15 {
@@ -271,13 +273,13 @@ machine_step :: proc(machine: ^Machine) -> bool {
         machine.v[x] ~= machine.v[y]
     } else if code == 0x8 && n == 0x6 {
         // - shift the value of Vx to the right by 1 and store the least significant bit in VF.
-        fmt.printfln("SHR V%X {V%X}", x, y)
+        fmt.printfln(`SHR V%X V%X`, x, y)
         lsb := machine.v[x] & 1
         machine.v[x] >>= 1
         machine.v[0xF] = lsb
     } else if code == 0x8 && n == 0xE {
         // - shift the value of Vx to the left by 1 and store the most significant bit in VF.
-        fmt.printfln("SHL V%X {V%X}", x, y)
+        fmt.printfln(`SHL V%X V%X`, x, y)
         msb := machine.v[x] & 0x80
         machine.v[x] <<= 1
         machine.v[0xF] = 1 if msb > 0 else 0
@@ -360,23 +362,14 @@ machine_step :: proc(machine: ^Machine) -> bool {
     return display_updated
 }
 
-program := []u8 {
-    // V0: 1 Offset, V1: Digit, V2: X-coordinate, V3: Y-coordinate, V4: Key 1, V5: Key 2
-    0x12, 0x03, 0b11111111, // - load the player sprite data.
-    0x64, 0x07, 0x65, 0x09,  // - set the keys.
-    0x62, 0x1C, 0x63, 0x1F, // - set the player initial coordinates.
-    0x60, 0x01, // - mark the beginning of the game.
-    0xA2, 0x02, 0xD2, 0x31, // - draw the player sprite.
-    0xE4, 0x9E, 0xB2, 0x18, 0x00, 0xE0, 0x82, 0x05, // - move the player to the left.
-    0xE5, 0x9E, 0xB2, 0x0C, 0x00, 0xE0, 0x72, 0x01, // - move the player to the right.
-    0xB2, 0x0C,
-}
+// program := []u8 {
+//     0x60, 0x01, 0xF0, 0x29, 0xD1, 0x25,
+// }
 
 main :: proc() {
     if len(os.args) < 2 do panic("USAGE: codochip ./rom.ch8")
-    // TEMP currently disabled to make constructing test programs easier!
-    // program, error := os.read_entire_file(os.args[1], context.allocator)
-    // if error != os.ERROR_NONE do panic("Couldn't read ROM!")
+    program, error := os.read_entire_file(os.args[1], context.allocator)
+    if error != os.ERROR_NONE do panic("Couldn't read ROM!")
     machine := Machine {}
     machine_spin(&machine, program)
 
