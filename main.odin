@@ -328,11 +328,19 @@ machine_step :: proc(machine: ^Machine) -> bool {
         }
         if !any_key_pressed do return false
 
-    // ~ Random Number Generator
+    // ~ Miscellaneous
     } else if code == 0xC {
         // - generate a random byte and bitwise-and it with a byte in Vx.
         fmt.printfln("RND V%X, 0x%02X", x, kk)
         machine.v[x] = auto_cast rand.int_range(0, 256) & kk
+    } else if code == 0xF && kk == 0x33 {
+        // - store the BCD representation of Vx in I, I + 1, and I + 2.
+        fmt.printfln("BCD [I], V%X", x)
+        v := machine.v[x]
+        for d := 0; d < 3; d += 1 {
+            machine.memory[machine.i + auto_cast d] = v % 10
+            v /= 10
+        }
 
     // ~ Drawing
     } else if instruction == 0x00E0 {
@@ -359,7 +367,7 @@ machine_step :: proc(machine: ^Machine) -> bool {
             }
         }
         display_updated = true
-    } else do panic(fmt.tprintf("Whoops! %04X", instruction))
+    } else do panic(fmt.tprintf("Whoops! 0x%03X: 0x%04X", machine.pc, instruction))
 
     if increment_pc do machine.pc += 2
     if machine.pc >= len(machine.memory) - 1 do panic("Program Finished!")
@@ -376,6 +384,9 @@ main :: proc() {
     if error != os.ERROR_NONE do panic("Couldn't read ROM!")
     machine := Machine {}
     machine_spin(&machine, program)
+
+    for i := 0; i < len(program); i += 1 do fmt.printfln("&%03X: %02X", i, program[i])
+    // fmt.printfln("%X", program[0xD6])
 
     raylib.SetTraceLogLevel(.ERROR)
     // CHIP-8 originally used a 64x32 display. To preserve its aspect ratio, we're going to each
