@@ -199,6 +199,10 @@ machine_step :: proc(machine: ^Machine) -> bool {
         // - load a byte into Vx.
         fmt.printfln("LOAD V%X, 0x%02X", x, kk)
         machine.v[x] = kk
+    } else if code == 0x8 && n == 0 {
+        // - load Vy into Vx.
+        fmt.printfln("LOAD V%X, V%X", x, y)
+        machine.v[x] = machine.v[y]
     } else if code == 0xA {
         // - load 12 bits into I.
         fmt.printfln("LOAD I, 0x%03X", nnn)
@@ -355,7 +359,7 @@ machine_step :: proc(machine: ^Machine) -> bool {
             }
         }
         display_updated = true
-    }
+    } else do panic(fmt.tprintf("Whoops! %04X", instruction))
 
     if increment_pc do machine.pc += 2
     if machine.pc >= len(machine.memory) - 1 do panic("Program Finished!")
