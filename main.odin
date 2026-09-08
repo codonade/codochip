@@ -1,5 +1,6 @@
 package main
 import "core:fmt"
+import str "core:strings"
 import "core:math/rand"
 import "vendor:raylib"
 import "core:os"
@@ -7,6 +8,13 @@ import "core:os"
 panic :: proc(message: string) {
     fmt.eprintln(message)
     os.exit(1)
+}
+
+should_disassemble := false
+disassemble :: proc(instruction: u16, format: string, args: ..any) {
+    if !should_disassemble do return
+    fmt.printf("(%04X) ", instruction)
+    fmt.printfln(format, ..args)
 }
 
 FONT_SPRITES_ADDRESS :: 0x050
@@ -172,24 +180,24 @@ machine_step :: proc(machine: ^Machine) -> bool {
     // ~ Calls and Jumps
     if code == 0x1 {
         // - jump to an address in memory.
-        fmt.printfln("JMP 0x%03X", nnn)
+        disassemble(instruction, "JMP :%03X", nnn)
         machine.pc = nnn
         increment_pc = false
     } else if code == 0xB {
         // - jump to a memory address offset by V0.
-        fmt.printfln("JMP V0, 0x%03X", nnn)
+        disassemble(instruction, "JMP V0 <0x%02X>, :%03X", machine.v[0], nnn)
         machine.pc = nnn + auto_cast machine.v[0]
         increment_pc = false
     } else if code == 0x2 {
         // - call a subroutine present at an address in memory.
-        fmt.printfln("CALL 0x%03X", nnn)
+        disassemble(instruction, "CALL :%03X", nnn)
         machine.stack[machine.sp] = machine.pc
         machine.sp += 1
         machine.pc = nnn
         increment_pc = false
     } else if instruction == 0x00EE {
         // - return from a subroutine.
-        fmt.println("RET")
+        disassemble(instruction, "RET")
         machine.sp -= 1
         machine.pc = machine.stack[machine.sp] + 2
         increment_pc = false
@@ -197,93 +205,93 @@ machine_step :: proc(machine: ^Machine) -> bool {
     // ~ Loading into Registers
     } else if code == 0x6 {
         // - load a byte into Vx.
-        fmt.printfln("LOAD V%X, 0x%02X", x, kk)
+        disassemble(instruction, "LOAD V%X, 0x%02X", x, kk)
         machine.v[x] = kk
     } else if code == 0x8 && n == 0 {
         // - load Vy into Vx.
-        fmt.printfln("LOAD V%X, V%X", x, y)
+        disassemble(instruction, "LOAD V%X, V%X <0x%02X>", x, y, machine.v[y])
         machine.v[x] = machine.v[y]
     } else if code == 0xA {
         // - load 12 bits into I.
-        fmt.printfln("LOAD I, 0x%03X", nnn)
+        disassemble(instruction, "LOAD I, :%03X", nnn)
         machine.i = nnn
     } else if code == 0xF && kk == 0x29 {
         // - load the location of the sprite for the digit in Vx into I.
-        fmt.println("LOAD I, F")
+        disassemble(instruction, "LOAD I, F <#%X>", machine.v[x])
         machine.i = FONT_SPRITES_ADDRESS + auto_cast machine.v[x] * 5
 
     // ~ Timers
     } else if code == 0xF && kk == 0x15 {
         // - load the value of Vx into DT.
-        fmt.printfln("LOAD DT, V%X", x)
+        disassemble(instruction, "LOAD DT, V%X <0x%02X>", x, machine.v[x])
         machine.dt = machine.v[x]
     } else if code == 0xF && kk == 0x07 {
         // - load the value of DT into Vx.
-        fmt.printfln("LOAD V%X, DT", x)
+        disassemble(instruction, "LOAD V%X, DT <0x%02X>", x, machine.v[x])
         machine.v[x] = machine.dt
     } else if code == 0xF && kk == 0x18 {
         // - load the value of Vx into ST.
-        fmt.printfln("LOAD ST, V%X", x)
+        disassemble(instruction, "LOAD ST, V%X <0x%02X>", x, machine.v[x])
         machine.st = machine.v[x]
 
     // ~ Memory Operations
     } else if code == 0xF && kk == 0x55 {
         // - store registers V0 through Vx in memory starting at I.
-        fmt.printfln("LOAD [I], V%X", x)
+        disassemble(instruction, "LOAD [:%03X -> :%03X], [V0 -> V%X]", machine.i, machine.i + auto_cast x, x)
         for r: u8 = 0; r <= x; r += 1 do machine.memory[machine.i + auto_cast r] = machine.v[r]
     } else if code == 0xF && kk == 0x65 {
         // - read values from memory starting at I to registers V0 through Vx.
-        fmt.printfln("LOAD V%X, [I]", x)
+        disassemble(instruction, "LOAD [V0 -> V%X], [:%03X -> :%03X]", x, machine.i, machine.i + auto_cast x)
         for r: u8 = 0; r <= x; r += 1 do machine.v[r] = machine.memory[machine.i + auto_cast r]
 
     // ~ Addition and Subtraction
     } else if code == 0x7 {
         // - adds a byte to Vx.
-        fmt.printfln("ADD V%X, 0x%02X", x, kk)
+        disassemble(instruction, "ADD V%X <0x%02X>, 0x%02X", x, machine.v[x], kk)
         machine.v[x] += kk
     } else if code == 0x8 && n == 0x4 {
         // - add Vy to Vx, flag VF if a carry occurred.
-        fmt.printfln("ADD V%X, V%X", x, y)
+        disassemble(instruction, "ADD V%X <0x%02X>, V%X <0x%02X> @VF", x, machine.v[x], y, machine.v[y])
         result: u16 = auto_cast machine.v[x] + auto_cast machine.v[y]
         machine.v[x] = auto_cast (result & 0x00FF)
         machine.v[0xF] = 1 if result > 255 else 0
     } else if code == 0xF && kk == 0x1E {
         // - add a byte to I.
-        fmt.printfln("ADD I, V%X", x)
+        disassemble(instruction, "ADD I <:%03X>, V%X", machine.i, x)
         machine.i += auto_cast machine.v[x]
     } else if code == 0x8 && n == 0x5 {
         // - subtract Vy from Vx, flag VF if borrowing isn't necessary.
-        fmt.printfln("SUB V%X, V%X", x, y)
+        disassemble(instruction, "SUB V%X <0x%02X>, V%X <0x%02X> @VF", x, machine.v[x], y, machine.v[y])
         machine.v[0xF] = 1 if machine.v[x] > machine.v[y] else 0
         machine.v[x] -= machine.v[y]
     } else if code == 0x8 && n == 0x7 {
-        // - subtract Vx from Vy, store the result in Vx, and flag VF for NOT borrowing.
-        fmt.printfln("SUBN V%X, V%X", x, y)
+        // - subtract Vx from Vy, store the result in Vx, and flag VF if borrowing isn't necessary.
+        disassemble(instruction, "SUBN V%X <0x%02X>, V%X <0x%02X> @VF", x, machine.v[x], y, machine.v[y])
         machine.v[0xF] = 1 if machine.v[y] > machine.v[x] else 0
         machine.v[x] = machine.v[y] - machine.v[x]
 
     // ~ Bit Operations
     } else if code == 0x8 && n == 0x1 {
         // - bitwise-or the values of Vx and Vy in Vx.
-        fmt.printfln("OR V%X, V%X", x, y)
+        disassemble(instruction, "OR V%X <0x%02X>, V%X <0x%02X>", x, machine.v[x], y, machine.v[y])
         machine.v[x] |= machine.v[y]
     } else if code == 0x8 && n == 0x2 {
         // - bitwise-and the values of Vx and Vy in Vx.
-        fmt.printfln("AND V%X, V%X", x, y)
+        disassemble(instruction, "AND V%X <0x%02X>, V%X <0x%02X>", x, machine.v[x], y, machine.v[y])
         machine.v[x] &= machine.v[y]
     } else if code == 0x8 && n == 0x3 {
         // - bitwise-xor the values of Vx and Vy in Vx.
-        fmt.printfln("XOR V%X, V%X", x, y)
+        disassemble(instruction, "XOR V%X <0x%02X>, V%X <0x%02X>", x, machine.v[x], y, machine.v[y])
         machine.v[x] ~= machine.v[y]
     } else if code == 0x8 && n == 0x6 {
         // - shift the value of Vx to the right by 1 and store the least significant bit in VF.
-        fmt.printfln(`SHR V%X V%X`, x, y)
+        disassemble(instruction, "SHR V%X <0x%02X>, !! @VF", x, machine.v[x])
         lsb := machine.v[x] & 1
         machine.v[x] >>= 1
         machine.v[0xF] = lsb
     } else if code == 0x8 && n == 0xE {
         // - shift the value of Vx to the left by 1 and store the most significant bit in VF.
-        fmt.printfln(`SHL V%X V%X`, x, y)
+        disassemble(instruction, "SHL V%X <0x%02X>, !! @VF", x, machine.v[x])
         msb := machine.v[x] & 0x80
         machine.v[x] <<= 1
         machine.v[0xF] = 1 if msb > 0 else 0
@@ -291,33 +299,33 @@ machine_step :: proc(machine: ^Machine) -> bool {
     // ~ Conditionals
     } else if code == 0x3 {
         // - skip the next instruction if Vx holds a specific value.
-        fmt.printfln("SE V%X, 0x%02X", x, kk)
+        disassemble(instruction, "SE V%X <0x%02X>, 0x%02X", x, machine.v[x], kk)
         if (machine.v[x] == kk) do machine.pc += 2
     } else if code == 0x5 && n == 0x0 {
         // - skip the next instruction if Vx equals Vy.
-        fmt.printfln("SE V%X, V%X", x, y)
+        disassemble(instruction, "SE V%X <0x%02X>, V%X <0x%02X>", x, machine.v[x], y, machine.v[y])
         if (machine.v[x] == machine.v[y]) do machine.pc += 2
     } else if code == 0x4 {
         // - skip the next instruction if Vx doesn't hold a specific value.
-        fmt.printfln("SNE V%X, 0x%02X", x, kk)
+        disassemble(instruction, "SNE V%X <0x%02X>, 0x%02X", x, machine.v[x], kk)
         if (machine.v[x] != kk) do machine.pc += 2
     } else if code == 0x9 && n == 0x0 {
         // - skip the next instruction if Vx doesn't equal Vy.
-        fmt.printfln("SNE V%X, V%X", x, y)
+        disassemble(instruction, "SNE V%X <0x%02X>, V%X <0x%02X>", x, machine.v[x], y, machine.v[y])
         if (machine.v[x] != machine.v[y]) do machine.pc += 2
 
     // ~ Keyboard Input
     } else if code == 0xE && kk == 0x9E {
-        // - skip the next instruction if the key with the value of Vx is pressed.
-        fmt.printfln("SKP V%X", x)
+        // - skip the next instruction if the key in Vx is pressed.
+        disassemble(instruction, "SKP V%X <K%X>", x, machine.v[x])
         if machine.key[machine.v[x]] do machine.pc += 2
     } else if code == 0xE && kk == 0xA1 {
-        // - skip the next instruction if the key with the value of Vx is not pressed.
-        fmt.printfln("SKNP V%X", x)
+        // - skip the next instruction if the key in Vx is not pressed.
+        disassemble(instruction, "SKNP V%X <K%X>", x, machine.v[x])
         if !machine.key[machine.v[x]] do machine.pc += 2
     } else if code == 0xF && kk == 0x0A {
         // - wait until any key is pressed and store its value in Vx.
-        fmt.printfln("WAIT V%X, K", x)
+        disassemble(instruction, "WAIT V%X, K", x)
         any_key_pressed := false
         for k: u8 = 0; k < 16; k += 1 {
             if machine.key[k] {
@@ -330,12 +338,12 @@ machine_step :: proc(machine: ^Machine) -> bool {
 
     // ~ Miscellaneous
     } else if code == 0xC {
-        // - generate a random byte and bitwise-and it with a byte in Vx.
-        fmt.printfln("RND V%X, 0x%02X", x, kk)
+        // - generate a random byte and bitwise-and it with Vx.
+        disassemble(instruction, "RND V%X, 0x%02X", x, kk)
         machine.v[x] = auto_cast rand.int_range(0, 256) & kk
     } else if code == 0xF && kk == 0x33 {
         // - store the BCD representation of Vx in I, I + 1, and I + 2.
-        fmt.printfln("BCD [I], V%X", x)
+        disassemble(instruction, "BCD [:%03X -> :%03X], V%X <0x%02X>", machine.i, machine.i + 2, x, machine.v[x])
         v := machine.v[x]
         for d := 0; d < 3; d += 1 {
             machine.memory[machine.i + auto_cast d] = v % 10
@@ -345,7 +353,7 @@ machine_step :: proc(machine: ^Machine) -> bool {
     // ~ Drawing
     } else if instruction == 0x00E0 {
         // - clear the display.
-        fmt.println("CLS")
+        disassemble(instruction, "CLS")
         for dx := 0; dx < 64; dx += 1 {
             for dy := 0; dy < 32; dy += 1 {
                 machine.display[dx][dy] = false
@@ -354,7 +362,7 @@ machine_step :: proc(machine: ^Machine) -> bool {
         display_updated = true
     } else if code == 0xD {
         // - draw an n-bytes sprite from I at (Vx, Vy).
-        fmt.printfln("DRW V%X, V%X, %X", x, y, n)
+        disassemble(instruction, "DRW V%X <0x%02X>, V%X <0x%02X>, %X", x, machine.v[x], y, machine.v[y], n)
         // Sprites can be up to 8x15 pixels. If they collided with another sprite, VF is switched on.
         machine.v[0xF] = 0
         for sx: u8 = 0; sx < 8; sx += 1 {
@@ -378,15 +386,27 @@ machine_step :: proc(machine: ^Machine) -> bool {
 //     0x60, 0x01, 0xF0, 0x29, 0xD1, 0x25,
 // }
 
+usage :: proc() {
+    panic("USAGE: codochip (--disassemble) ./rom.ch8")
+}
+
 main :: proc() {
-    if len(os.args) < 2 do panic("USAGE: codochip ./rom.ch8")
-    program, error := os.read_entire_file(os.args[1], context.allocator)
+    // - parse command line arguments.
+    if len(os.args) < 2 || len(os.args) > 3 do usage()
+    file_path := ""
+    for i := 0; i < 2; i += 1 {
+        arg := os.args[i + 1]
+        if str.starts_with(arg, "-") {
+            if arg == "-d" || arg == "--disassemble" do should_disassemble = true
+            else do usage()
+        } else do file_path = arg
+    }
+
+    // - spin up the machine.
+    program, error := os.read_entire_file(file_path, context.allocator)
     if error != os.ERROR_NONE do panic("Couldn't read ROM!")
     machine := Machine {}
     machine_spin(&machine, program)
-
-    for i := 0; i < len(program); i += 1 do fmt.printfln("&%03X: %02X", i, program[i])
-    // fmt.printfln("%X", program[0xD6])
 
     raylib.SetTraceLogLevel(.ERROR)
     // CHIP-8 originally used a 64x32 display. To preserve its aspect ratio, we're going to each
