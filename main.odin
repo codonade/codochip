@@ -344,11 +344,9 @@ machine_step :: proc(machine: ^Machine) -> bool {
     } else if code == 0xF && kk == 0x33 {
         // - store the BCD representation of Vx in I, I + 1, and I + 2.
         disassemble(instruction, "BCD [:%03X -> :%03X], V%X <0x%02X>", machine.i, machine.i + 2, x, machine.v[x])
-        v := machine.v[x]
-        for d := 0; d < 3; d += 1 {
-            machine.memory[machine.i + auto_cast d] = v % 10
-            v /= 10
-        }
+        machine.memory[machine.i + 0] = machine.v[x] / 100
+        machine.memory[machine.i + 1] = (machine.v[x] / 10) % 10
+        machine.memory[machine.i + 2] = machine.v[x] % 10
 
     // ~ Drawing
     } else if instruction == 0x00E0 {
