@@ -427,25 +427,22 @@ main :: proc() {
         fd := raylib.GetFrameTime()
 
         // - get keyboard input.
-        // There was no concept of continuous key holding in the CHIP-8 computers.
-        // TODO sometimes a press gets registered twice.
-        for k: u8 = 0; k < 16; k += 1 do machine.key[k] = false
-        machine.key[0x1] = raylib.IsKeyPressed(.ONE)
-        machine.key[0x2] = raylib.IsKeyPressed(.TWO)
-        machine.key[0x3] = raylib.IsKeyPressed(.THREE)
-        machine.key[0xC] = raylib.IsKeyPressed(.FOUR)
-        machine.key[0x4] = raylib.IsKeyPressed(.Q)
-        machine.key[0x5] = raylib.IsKeyPressed(.W)
-        machine.key[0x6] = raylib.IsKeyPressed(.E)
-        machine.key[0xD] = raylib.IsKeyPressed(.R)
-        machine.key[0x7] = raylib.IsKeyPressed(.A)
-        machine.key[0x8] = raylib.IsKeyPressed(.S)
-        machine.key[0x9] = raylib.IsKeyPressed(.D)
-        machine.key[0xE] = raylib.IsKeyPressed(.F)
-        machine.key[0xA] = raylib.IsKeyPressed(.Z)
-        machine.key[0x0] = raylib.IsKeyPressed(.X)
-        machine.key[0xB] = raylib.IsKeyPressed(.C)
-        machine.key[0xF] = raylib.IsKeyPressed(.V)
+        machine.key[0x1] = raylib.IsKeyDown(.ONE)
+        machine.key[0x2] = raylib.IsKeyDown(.TWO)
+        machine.key[0x3] = raylib.IsKeyDown(.THREE)
+        machine.key[0xC] = raylib.IsKeyDown(.FOUR)
+        machine.key[0x4] = raylib.IsKeyDown(.Q)
+        machine.key[0x5] = raylib.IsKeyDown(.W)
+        machine.key[0x6] = raylib.IsKeyDown(.E)
+        machine.key[0xD] = raylib.IsKeyDown(.R)
+        machine.key[0x7] = raylib.IsKeyDown(.A)
+        machine.key[0x8] = raylib.IsKeyDown(.S)
+        machine.key[0x9] = raylib.IsKeyDown(.D)
+        machine.key[0xE] = raylib.IsKeyDown(.F)
+        machine.key[0xA] = raylib.IsKeyDown(.Z)
+        machine.key[0x0] = raylib.IsKeyDown(.X)
+        machine.key[0xB] = raylib.IsKeyDown(.C)
+        machine.key[0xF] = raylib.IsKeyDown(.V)
 
         // - execute instructions.
         // HMMM I really don't understand why everything keeps flashing on the screen?
