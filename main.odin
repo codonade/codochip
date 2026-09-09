@@ -165,7 +165,7 @@ machine_spin :: proc(machine: ^Machine, program: []u8) {
 }
 
 // TODO handle instruction errors!
-machine_step :: proc(machine: ^Machine) -> bool {
+machine_step :: proc(machine: ^Machine) {
     low_byte := machine.memory[machine.pc]
     kk := machine.memory[machine.pc + 1]
     instruction: u16 = auto_cast low_byte << 8 | auto_cast kk
@@ -175,7 +175,6 @@ machine_step :: proc(machine: ^Machine) -> bool {
     y := kk >> 4
     n := kk & 0x0F
     increment_pc := true
-    display_updated := false
 
     // ~ Calls and Jumps
     if code == 0x1 {
@@ -334,7 +333,7 @@ machine_step :: proc(machine: ^Machine) -> bool {
                 break
             }
         }
-        if !any_key_pressed do return false
+        if !any_key_pressed do return
 
     // ~ Miscellaneous
     } else if code == 0xC {
@@ -357,7 +356,6 @@ machine_step :: proc(machine: ^Machine) -> bool {
                 machine.display[dx][dy] = false
             }
         }
-        display_updated = true
     } else if code == 0xD {
         // - draw an n-bytes sprite from I at (Vx, Vy).
         disassemble(instruction, "DRW V%X <0x%02X>, V%X <0x%02X>, %X", x, machine.v[x], y, machine.v[y], n)
@@ -372,12 +370,10 @@ machine_step :: proc(machine: ^Machine) -> bool {
                 machine.display[dx][dy] = machine.display[dx][dy] != pixel
             }
         }
-        display_updated = true
     } else do panic(fmt.tprintf("Whoops! 0x%03X: 0x%04X", machine.pc, instruction))
 
     if increment_pc do machine.pc += 2
     if machine.pc >= len(machine.memory) - 1 do panic("Program Finished!")
-    return display_updated
 }
 
 // program := []u8 {
@@ -443,25 +439,11 @@ main :: proc() {
         machine.key[0xF] = raylib.IsKeyDown(.V)
 
         // - execute instructions.
-        // HMMM I really don't understand why everything keeps flashing on the screen?
-        raylib.BeginDrawing()
         accumulated_cycle_time += auto_cast fd
         for accumulated_cycle_time >= cycle_duration {
-            if machine_step(&machine) {
-                raylib.ClearBackground(raylib.BLACK)
-                for dx := 0; dx < 64; dx += 1 {
-                    for dy := 0; dy < 32; dy += 1 {
-                        if !machine.display[dx][dy] do continue
-                        raylib.DrawRectangle(
-                            auto_cast dx * 16,
-                            auto_cast dy * 16,
-                            16, 16, raylib.RED)
-                    }
-                }
-            }
+            machine_step(&machine)
             accumulated_cycle_time -= cycle_duration
         }
-        raylib.EndDrawing()
 
         // - tick timers.
         accumulated_timer_time += auto_cast fd
@@ -473,5 +455,20 @@ main :: proc() {
             }
             accumulated_timer_time -= tick_duration
         }
+
+        // - render the display.
+        // HMMM I really don't understand why everything keeps flashing on the screen?
+        raylib.BeginDrawing()
+        raylib.ClearBackground(raylib.BLACK)
+        for dx := 0; dx < 64; dx += 1 {
+            for dy := 0; dy < 32; dy += 1 {
+                if !machine.display[dx][dy] do continue
+                raylib.DrawRectangle(
+                    auto_cast dx * 16,
+                    auto_cast dy * 16,
+                    16, 16, raylib.RED)
+            }
+        }
+        raylib.EndDrawing()
     }
 }
