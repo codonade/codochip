@@ -260,14 +260,14 @@ machine_step :: proc(machine: ^Machine) -> bool {
         disassemble(instruction, "ADD I <:%03X>, V%X", machine.i, x)
         machine.i += auto_cast machine.v[x]
     } else if code == 0x8 && n == 0x5 {
-        // - subtract Vy from Vx, flag VF if borrowing isn't necessary.
+        // - subtract Vy from Vx, flag VF if Vx >= Vy
         disassemble(instruction, "SUB V%X <0x%02X>, V%X <0x%02X> @VF", x, machine.v[x], y, machine.v[y])
-        machine.v[0xF] = 1 if machine.v[x] > machine.v[y] else 0
+        machine.v[0xF] = 1 if machine.v[x] >= machine.v[y] else 0
         machine.v[x] -= machine.v[y]
     } else if code == 0x8 && n == 0x7 {
-        // - subtract Vx from Vy, store the result in Vx, and flag VF if borrowing isn't necessary.
+        // - subtract Vx from Vy, store the result in Vx, and flag VF if Vy >= Vx
         disassemble(instruction, "SUBN V%X <0x%02X>, V%X <0x%02X> @VF", x, machine.v[x], y, machine.v[y])
-        machine.v[0xF] = 1 if machine.v[y] > machine.v[x] else 0
+        machine.v[0xF] = 1 if machine.v[y] >= machine.v[x] else 0
         machine.v[x] = machine.v[y] - machine.v[x]
 
     // ~ Bit Operations
