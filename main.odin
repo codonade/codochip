@@ -17,11 +17,15 @@ disassemble :: proc(instruction: u16, format: string, args: ..any) {
     fmt.printfln(format, ..args)
 }
 
-FONT_SPRITES_ADDRESS :: 0x050
+// The CHIP-8 interpreter used to live alongside its programs in memory, occupying the first 512 bytes.
+// For this historical reason, most programs start at address 0x200.
 INTERPRETER_END_ADDRESS :: 0x200
+// It's just a convention to store sprites at 0x050, the only thing we need to care about is that they
+// live in the "interpreter" area of the memory.
+FONT_SPRITES_ADDRESS :: 0x050
+
 Machine :: struct {
-    // 4KB memory. Programs start at 0x0200 because the first 512 bytes were where the interpreter
-    // used to live. Programs targetting ETI 660 start at 0x0600.
+    // 4 kilobytes of memory.
     memory: [4_096]u8,
 
     // Psuedo-registers are registers that aren't accessible from CHIP-8 programs.
@@ -44,7 +48,7 @@ Machine :: struct {
     key: [16]bool,
 
     // 8-bit general purpose registers.
-    // VF shouldn't be used by any program as it is used as a flag by some instructions.
+    // VF shouldn't be used as some instructions flag it.
     v: [16]u8,
     // 16-bit general purpose register.
     i: u16,
@@ -164,7 +168,6 @@ machine_spin :: proc(machine: ^Machine, program: []u8) {
     }
 }
 
-// TODO handle instruction errors!
 machine_step :: proc(machine: ^Machine) {
     low_byte := machine.memory[machine.pc]
     kk := machine.memory[machine.pc + 1]
@@ -376,10 +379,6 @@ machine_step :: proc(machine: ^Machine) {
     if machine.pc >= len(machine.memory) - 1 do panic("Program Finished!")
 }
 
-// program := []u8 {
-//     0x60, 0x01, 0xF0, 0x29, 0xD1, 0x25,
-// }
-
 usage :: proc() {
     panic("USAGE: codochip (--disassemble) ./rom.ch8")
 }
@@ -403,8 +402,7 @@ main :: proc() {
     machine_spin(&machine, program)
 
     raylib.SetTraceLogLevel(.ERROR)
-    // CHIP-8 originally used a 64x32 display. To preserve its aspect ratio, we're going to each
-    // CHIP-8 pixel to a 16x16 block of real pixels.
+    // To have something we can actually see, we're going to map each CHIP-8 pixel to a 16x16 block.
     raylib.InitWindow(1024, 512, "CHIP-8")
     defer raylib.CloseWindow()
     raylib.SetTargetFPS(60)
@@ -412,7 +410,6 @@ main :: proc() {
     // Different games rely on different clock rates, so 600 is probablly the safest middle ground.
     cycle_duration := 1.0 / 600.0
     accumulated_cycle_time := 0.0
-
     // CHIP-8 timers tick 60 times a second.
     tick_duration := 1.0 / 60.0
     accumulated_timer_time := 0.0
@@ -449,15 +446,11 @@ main :: proc() {
         accumulated_timer_time += auto_cast fd
         for accumulated_timer_time >= tick_duration {
             if machine.dt > 0 do machine.dt -= 1
-            if machine.st > 0 {
-                machine.st -= 1
-                fmt.println("TODO beeeeep!")
-            }
+            if machine.st > 0 do machine.st -= 1
             accumulated_timer_time -= tick_duration
         }
 
         // - render the display.
-        // HMMM I really don't understand why everything keeps flashing on the screen?
         raylib.BeginDrawing()
         raylib.ClearBackground(raylib.BLACK)
         for dx := 0; dx < 64; dx += 1 {
