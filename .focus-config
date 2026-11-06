@@ -1,4 +1,6 @@
 [16]
+# This is the project configuration for https://focus-editor.dev/
+# If you don't use it, don't bother with this file at all.
 
 [[workspace]]
 .
