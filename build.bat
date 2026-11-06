@@ -1,2 +1,3 @@
 @echo off
-odin build "codochip.odin" -file
+if not exist ".\bin\" mkdir "bin"
+odin build "codochip.odin" -file -out:".\bin\codochip.exe"

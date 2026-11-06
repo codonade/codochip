@@ -14,9 +14,12 @@ I tried to implement everything from scratch without the use of AI, but there we
 I couldn't understand by myself or issues that I didn't know how to resolve, so I needed the help of
 a friend...
 
+## 🗃️ ROMs
+
+You can find a bunch of CHIP-8 games and demos [here.](https://github.com/kripod/chip8-roms)
+
 ## 🌐 References
 
 - [Odin Overview](https://odin-lang.org/docs/overview/)
 - [CHIP-8 Technical Reference](http://devernay.free.fr/hacks/chip8/C8TECH10.HTM)
-- [CHIP-8 ROMs](https://github.com/kripod/chip8-roms)
-- [Trip8](https://youtu.be/PlSjiGWFk4w?si=vO624ap90UEuX6hb)
+- [Trip8 Demo](https://youtu.be/PlSjiGWFk4w?si=vO624ap90UEuX6hb)
