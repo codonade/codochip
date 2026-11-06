@@ -1,0 +1,18 @@
+[16]
+
+[[workspace]]
+.
+
+[[build commands]]
+open_panel_on_build: true
+clear_build_output_before_running: true
+error_regex: ^(?P<file>.*\.odin)\((?P<line>\d+):(?P<col>\d+)\) (?P<type>Error|Warning): (?P<msg>.*)$
+
+[Build]
+key_binding: F1
+build_command: .\build.bat
+
+[Build and Test Trip8]
+key_binding: F2
+build_command: .\build.bat
+run_command: .\codochip.exe ".\tests\trip8.ch8"
